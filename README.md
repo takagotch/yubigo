@@ -20,6 +20,35 @@ var (
   signatureUrlFix = regexp.MustCompile(`\+`)
 )
 
+var HTTPClient *http.Client = nil
+
+func ParseOTP(otp string) (prefix string, ciphertext string, err error) {
+  if len(otp) < 32 || len(otp) > 48 {
+    err = errors.New("OTP has wrong length.")
+    return
+  }
+  
+  if matchDvorak.MatchString(otp) {
+    otp = dvorakToQwerty.Replace(otp)
+  }
+  
+  if !matchQwerty.MatchString(otp) {
+    err = errors.New("Given string is not a valid Yubikey OTP, It contains invalid characters ans/or the length is wrong.")
+    return
+  }
+  
+  l := len(otp)
+  prefix = otp[0 : l-32]
+  ciphertext = otp[l-32 : l]
+  return
+}
+
+type YubiAuth struct {
+  id string
+  key []byte
+  
+}
+
 type verifyWorker struct {
   id string
   key []byte
