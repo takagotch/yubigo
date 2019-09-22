@@ -147,7 +147,39 @@ func (ya *YubiAuth) HttpsVerifyCertificate(verifyCertificate bool) {
 }
 
 func (ya *YubiAuth) Verify(otp string) (yr *YubiResponse, ok bool, err error) {
-
+  keyBytes, err := base64.StdEncoding.DecodeString(key)
+  if err != nil {
+    err = fmt.Errorf("Given key seems to be invalid. Could not base64_decode. Error: %s\n", err)
+    return
+  }
+  
+  if debug {
+    log.Printf("NewYubiAuthDebug: Given key is base64 decodable. Creating new YubiAuth instance with api id '%s'.\n", id)
+  }
+  
+  auth = &YubiAuth{
+    id: id,
+    key: keyBytes,
+    
+    apiServerList: []string{"api.yubico.com/wsapi/2.0/verify",
+        "api2.yubico.com/wsapi/2.0/verify",
+        "api3.yubico.com/wsapi/2.0/verify",
+        "api4.yubico.com/wsapi/2.0/verify",
+        "api5.yubico.com/wsapi/2.0/verify"},
+    protocol: "https://",
+    verifyCertificate: true,
+    
+    debug: debug,
+  }
+  
+  if debug {
+    log.Printf("NewYubiAuthDebug: Using yubigo web servers: %#v\n", auth.apiServerList)
+    log.Println("NewYubiAuthDebug: Going to build workers.")
+  }
+  
+  auth.buildWorkers()
+  
+  return
 }
 
 type YubiResponse struct {
