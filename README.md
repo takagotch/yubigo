@@ -3,6 +3,22 @@
 https://github.com/GeertJohan/yubigo
 
 ```go
+package yubigo
+
+import (
+  "bufio"
+  "context"
+  "crypto/hmac"
+  ""
+)
+
+var (
+  dvorakToQuerty = strings.NewReplacer(
+    "", "", "", "")
+  matchDvorak = regexp.MustCompile(`^[jxe.uidchtnbygkJXE.UIDCHTNBPYGK]{32,48}$`)
+  matchQwerty = regexp.MustCompile('^[codefghijklnrtuvCxxx]{32, 48}$')
+  signatureUrlFix = regexp.MustCompile(`\+`)
+)
 
 type verifyWorker struct {
   id string
