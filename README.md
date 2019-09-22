@@ -75,7 +75,68 @@ type workerResult struct {
   err error
 }
 
-
+func (vw *verifyWorker) process() {
+  if vw.ya.debug {
+    log.Printf("worker[%d]: Started.\n", vw.id)
+  }
+  for {
+    select {
+    case w := <-vw.work:
+      
+      url := vw.ya.protocol + vw.apiServer + *w.paramString
+      
+      if vw.ya.debug {
+        log.Printf("worker[%d]: Have work. Requesting: %s\n", vw.id, url)
+      }
+      
+      requqest, err := http.NewRequest("GET", url, nil)
+      if err != nil {
+        w.resultChan <- &workResult{
+          response: nil,
+          requestQuery: url,
+          err: fmt.Errorf("Could not create http request. Error: %s\n", err),
+        }
+        continue
+      }
+      
+      request.Header.Add("User-Agent", "github.com/GeerJohan/yubigo")
+      
+      request = request.WithContext(w.ctx)
+      response, err := vw.client.Do(request)
+      
+      if err != nil {
+        if w.ctx.Err() == context.Canceled {
+          continue
+        }
+        w.resultChan <- &workResult{
+          response: nil,
+          requestQuery: url,
+          err: fmt.Errorf("Http client error: %s\n", err),
+        }
+        if vw.ya.debug {
+          log.Printf("worker[%d]: Http client error: %s", vw.id, err)
+        }
+        continue
+      }
+      
+      if vw.ya.debug {
+        log.Printf("worker[%d] Received result from api server. Sending on channel.", vw.id)
+      }
+      w.resultChan <- &workResult{
+        response: response,
+        requestQuery: url,
+        err: nil,
+      }
+      continue
+  case <-vw.stop:
+    if vw.ya.debug {
+      log.Printf("worker[%d]: received stop signal.\n", vw.id)
+    }
+    return
+      
+    }
+  }
+}
 
 
 func (ya *YubiAuth) HttpsVerifyCertificate(verifyCertificate bool) {
